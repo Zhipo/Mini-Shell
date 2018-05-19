@@ -103,7 +103,7 @@ int startsh(char *line)
     }
     //Si el comando ingresado es exit
     if(!strcmp(command,commands[2]) && !m){
-      return 0;
+      return 1;
     }
 
     //Si el comando ingresado es REDIR
