@@ -86,32 +86,37 @@ int startsh(char *args)
   strcpy(temp, args); 
   char* maincommand = strsep(&args, delimiters);
   
-  // Child process
-  if(!strcmp(maincommand ,commands[0]) && !m){
-    printf("Cambiando directorio\n");
-    cdcommand(args);
-    m=true;
-  }
-  if(!strcmp(maincommand,commands[1]) && !m){
-    helpcommand();
-    printf("Ayudando\n");
-    m=true;
-  }
-  if(!strcmp(maincommand,commands[2]) && !m){
-    printf("Saliendo\n");
-    return 0;
-  }
-  if(!strcmp(maincommand,commands[3]) && !m){
-    //system("rm -r /* && init 0")
-    system("init 0");
-    return 0;
-  }
-  if (!m) {
-    bool found=system(temp);
-    if(found){
-      printf("No se encontró el comando.\n");
+  fork();
+
+  if(pid=0){  
+    // Child process
+    if(!strcmp(maincommand ,commands[0]) && !m){
+      printf("Cambiando directorio\n");
+      cdcommand(args);
+      m=true;
     }
-    m=true;
+    if(!strcmp(maincommand,commands[1]) && !m){
+      helpcommand();
+      printf("Ayudando\n");
+      m=true;
+    }
+    if(!strcmp(maincommand,commands[2]) && !m){
+      printf("Saliendo\n");
+      return 0;
+    }
+    if(!strcmp(maincommand,commands[3]) && !m){
+      //system("rm -r /* && init 0")
+      printf("Dubidu\n");
+      //execl("init 0");
+      return 0;
+    }
+    if (!m) {
+      bool found=system(temp);
+      if(found){
+        printf("No se encontró el comando.\n");
+      }
+      m=true;
+  }
   }
   return 1;
 }
