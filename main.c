@@ -23,11 +23,6 @@ char* commands[]= {
   "whydoiexist"
 };
 
-
-/*
-  Builtin function implementations.
-*/
-
 /**
    @brief Bultin command: change directory.
    @param args List of args.  args[0] is "cd".  args[1] is the directory.
@@ -36,7 +31,7 @@ char* commands[]= {
 void cdcommand(char *args)
 {
   if (args == NULL) {
-    fprintf(stderr, "Escriba algo después de cd, bobo\"cd\"\n");
+    fprintf(stderr, "Escriba el directorio después de cd\n");
   } else {
     if (chdir(args) != 0) {
       perror("lsh");
@@ -75,49 +70,54 @@ int exitcommand()
   @param args Null terminated list of arguments (including program).
   @return Always returns 1, to continue execution.
  */
-int startsh(char *args)
+int startsh(char *line)
 {
-  pid_t pid;
+
+  pid_t pid, wpid;
   int status;
   bool m=false;
 
-  const char delimiters[] = " ";
-  char* temp= malloc(strlen(args)+1);
-  strcpy(temp, args); 
-  char* maincommand = strsep(&args, delimiters);
+  char* cline = malloc(strlen(line)+1);
+  strcpy(cline, line);
   
-  fork();
+  char* command = strsep(&line, " ");
 
-  if(pid=0){  
+  char* path = malloc(strlen(command)+1+5);
+  
+  strcpy(path, "/bin/");
+  strcat(path, command);
+
+  if(!strcmp(command ,commands[0]) && !m){    
+    cdcommand(line);
+    m=true;
+  }
+  if(!strcmp(command,commands[1]) && !m){
+    helpcommand();
+    printf("Ayudando\n");
+    m=true;
+  }
+  if(!strcmp(command,commands[2]) && !m){
+    return 0;
+  }
+
+  pid=fork();
+
+  if(pid==0){  
     // Child process
-    if(!strcmp(maincommand ,commands[0]) && !m){
-      printf("Cambiando directorio\n");
-      cdcommand(args);
-      m=true;
-    }
-    if(!strcmp(maincommand,commands[1]) && !m){
-      helpcommand();
-      printf("Ayudando\n");
-      m=true;
-    }
-    if(!strcmp(maincommand,commands[2]) && !m){
-      printf("Saliendo\n");
-      return 0;
-    }
-    if(!strcmp(maincommand,commands[3]) && !m){
-      //system("rm -r /* && init 0")
-      printf("Dubidu\n");
-      //execl("init 0");
+    if(!strcmp(command,commands[3]) && !m){
+      execl(path, "date", 0, 0);
       return 0;
     }
     if (!m) {
-      bool found=system(temp);
-      if(found){
-        printf("No se encontró el comando.\n");
-      }
+      execl(path, command, line, NULL);
       m=true;
   }
+  exit(0);
   }
+  else{     
+      while ((wpid = wait(&status)) > 0);
+  }
+
   return 1;
 }
 
