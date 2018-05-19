@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "utils.c"
+
+
+int commandsinline=0;
 
 /*
   Function Declarations for builtin shell commands:
@@ -19,8 +23,9 @@ int exitcommand();
 char* commands[]= {
   "cd",
   "help",
-  "exit",
-  "whydoiexist"
+  "QUIT",
+  "REDIR",
+  "BG"
 };
 
 /**
@@ -72,51 +77,57 @@ int exitcommand()
  */
 int startsh(char *line)
 {
-
   pid_t pid, wpid;
   int status;
   bool m=false;
 
-  char* cline = malloc(strlen(line)+1);
-  strcpy(cline, line);
-  
-  char* command = strsep(&line, " ");
+    m=false;
+    
+    char* command = strsep(&line, " ");
 
-  char* path = malloc(strlen(command)+1+5);
-  
-  strcpy(path, "/bin/");
-  strcat(path, command);
+    char* path = malloc(strlen(command)+1+5);
+    
+    strcpy(path, "/bin/");
+    strcat(path, command);
 
-  if(!strcmp(command ,commands[0]) && !m){    
-    cdcommand(line);
-    m=true;
-  }
-  if(!strcmp(command,commands[1]) && !m){
-    helpcommand();
-    printf("Ayudando\n");
-    m=true;
-  }
-  if(!strcmp(command,commands[2]) && !m){
-    return 0;
-  }
-
-  pid=fork();
-
-  if(pid==0){  
-    // Child process
-    if(!strcmp(command,commands[3]) && !m){
-      execl(path, "date", 0, 0);
+    //Si el comando ingresado es cd
+    if(!strcmp(command ,commands[0]) && !m){    
+      cdcommand(line);
+      m=true;
+    }
+    //Si el comando ingresado es help
+    if(!strcmp(command,commands[1]) && !m){
+      helpcommand();
+      printf("Ayudando\n");
+      m=true;
+    }
+    //Si el comando ingresado es exit
+    if(!strcmp(command,commands[2]) && !m){
       return 0;
     }
-    if (!m) {
-      execl(path, command, line, NULL);
-      m=true;
-  }
-  exit(0);
-  }
-  else{     
-      while ((wpid = wait(&status)) > 0);
-  }
+
+    //Si el comando ingresado es REDIR
+    if(!strcmp(command,commands[3]) && !m){
+      return 0;
+    }
+
+    //Si el comando ingresado es BG
+    if(!strcmp(command,commands[4]) && !m){
+      return 0;
+    }    
+
+    pid=fork();
+
+    if(pid==0){
+      if (!m) {
+        execl(path, command, line, NULL);
+        m=true;
+    }
+    exit(0);
+    }
+    else{     
+        while ((wpid = wait(&status)) > 0);
+    }
 
   return 1;
 }
@@ -163,6 +174,47 @@ char *readlinesh(void)
   }
 }
 
+#define ROWS 100
+char** trimcommands(char* cline){
+  char **commands;
+  commands = (char **)malloc (ROWS*sizeof(char *));
+  char* line;
+
+  bool finalcommand=false;
+  int cont=0;
+
+  while(!finalcommand){
+
+    commandsinline++;
+    switch(whatsfirst(cline)){
+        case 1:{
+          line=strsep(&cline,"&");
+          strsep(&cline,"&");
+          strsep(&cline," ");
+          break;
+        }
+        case 2:{
+          line=strsep(&cline,"||");
+          strsep(&cline,"|");
+          strsep(&cline," ");
+          break;
+        }
+        case 3:{
+          line=strsep(&cline,"&");
+          strsep(&cline," ");
+          break;
+        }
+        default:{
+          line=cline;
+          finalcommand=true;
+          break;
+        }
+    }
+    startsh(line);
+    cont++;
+  }
+}
+
 /**
    @return status code
  */
@@ -171,11 +223,14 @@ int main(int argc, char **argv)
   // Se realiza un ciclo infinito mientras status determine que el usuario no desea salir .
   char *line;
   int status;
+  char** commands;
 
   do {
-    printf(">. ");
+    commandsinline=0;
+    printf("> ");
     line = readlinesh();
-    status = startsh(line);
+    trimcommands(line);
+
   } while (status);
 
   return 1;
