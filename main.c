@@ -103,7 +103,6 @@ int startsh(char *line)
     //Si el comando ingresado es help
     if(!strcmp(command,commands[1]) && !m){
       helpcommand();
-      printf("Ayudando\n");
       m=true;
     }
     //Si el comando ingresado es exit
@@ -125,6 +124,7 @@ int startsh(char *line)
 
     if(pid==0){
       char *execArgs[] = { command, line, NULL };
+
       execvp(command, execArgs);
       m=true;
       exit(0);
@@ -220,49 +220,51 @@ char** trimcommands(char* cline){
 }
  
 void redir(char* line){
-    char* cline = malloc((strlen(line)+1)*sizeof(char));
-    strcpy(cline, line);
+
+    bool inputmod=false;
+    bool outputmod=false;
+
+    int fdi, fdo;
+    char* input=getinput(line);
+    char* output=getoutput(line);
+
+    char* newline=malloc(sizeof(char)*strlen(line));
+    newline=strsep(&line,"OUTPUTFILE=");
+    newline=strsep(&newline,"INPUTFILE=");
+
+    char* command=malloc(sizeof(char)*strlen(newline));
+    strcpy(command, newline);
+    command=strsep(&command, " ");
     
-    line=trimfile(line);
+    strsep(&newline, " ");
 
-    if(whatsfirsttwo(cline) == 1 ){
-    }
-    else{
-      char* command=strsep(&cline,"OUTPUTF");
-      char* copycommand = malloc((strlen(command)+1)*sizeof(char));
-      strcpy(copycommand, command);
-      strsep(&copycommand," ");
-      command=strsep(&command," ");
-      copycommand=strsep(&copycommand," ");
-      int fd = open(line, O_WRONLY|O_CREAT, 0666);        
-      dup2(fd, STDOUT_FILENO);
-      close(fd);
-      char *execArgs[] = { command, copycommand, NULL };
-      execvp(command,execArgs);
-      dup2(STDOUT_FILENO, fd);
-    }
+    char* args=malloc(sizeof(char)*strlen(newline));
+    args=strsep(&newline, " ");
 
+      pid_t pid, wpid;
+      int status;
 
-  /*
-    int fd[2];
-    pid_t childpid;
-    pipe(fd);
-    if ((childpid = fork()) == 0) {  ls es el hijo 
-        dup2(fd[1], STDOUT_FILENO);
-        close(fd[0]);
-        close(fd[1]);
+      pid=fork();
+
+      if(pid==0){
+        char *execArgs[] = { command, args, NULL };
+
+        if(input != NULL){
+          fdi = open(line, O_WRONLY|O_CREAT, 0666);        
+          dup2(fdi, STDIN_FILENO);
+          close(fdi);
+        }
+        if(output != NULL){
+          fdo = open(output, O_WRONLY|O_CREAT, 0666);        
+          dup2(fdo, STDOUT_FILENO);
+          close(fdo);
+        } 
         execvp(command, execArgs);
-        execl("/bin/ls", "ls", "-l", NULL);
-        perror("Exec failed");
-    }
-    else {
-        dup2(fd[0], STDIN_FILENO);
-        close(fd[0]);
-        close(fd[1]);
-        execl("/usr/bin/sort", "sort", "-n", "--key=5", NULL);
-        perror("...");
-    }
- */
+        exit(0);
+      }
+      else{     
+          while ((wpid = wait(&status)) > 0);
+      }    
 }
 
 /**

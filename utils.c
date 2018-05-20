@@ -28,6 +28,55 @@ int whatsfirsttwo(char* s)
     return 0;
 }
 
+char* getinput(char* s){
+	char* file= malloc(1*sizeof(char));
+	char c=' ';
+	int cont=10;
+	int pos;
+	int sizefile=0;
+	for(int i=0;i<strlen(s);i++){
+    	if(s[i]=='I' && s[i+1]=='N'){
+    		c=s[i+cont];
+    		sizefile=0;
+    		pos=i;
+    		while(c!=' ' && c!='\0'){
+    			sizefile++;
+    			file=realloc(file, sizefile*sizeof(char));
+    			file[sizefile-1]=c;
+    			cont++;
+    			i++;
+    			c=s[pos+cont];
+    		}
+    		return file;
+    	}
+    }
+    return NULL;	
+}
+
+char* getoutput(char* s){
+	char* file= malloc(1*sizeof(char));
+	char c=' ';
+	int cont=11;
+	int pos;
+	int sizefile=0;
+	for(int i=0;i<strlen(s);i++){
+    	if(s[i]=='O' && s[i+1]=='U'){
+    		c=s[i+cont];
+    		sizefile=0;
+    		pos=i;
+    		while(c!=' ' && c!='\0'){
+    			sizefile++;
+    			file=realloc(file, sizefile*sizeof(char));
+    			file[sizefile-1]=c;
+    			cont++;
+    			i++;
+    			c=s[pos+cont];
+    		}
+    		return file;
+    	}
+    }
+    return NULL;	
+}
 
 char* trimfile(char* s){
 	char* file= malloc(1*sizeof(char));
