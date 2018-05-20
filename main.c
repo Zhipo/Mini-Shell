@@ -1,3 +1,5 @@
+#include <fcntl.h>
+
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -16,6 +18,7 @@ int commandsinline=0;
 void cdcommand(char *args);
 void helpcommand();
 int exitcommand();
+void redir(char* args);
 
 /*
   List of builtin commands, followed by their corresponding functions.
@@ -82,7 +85,9 @@ int startsh(char *line)
   bool m=false;
 
     m=false;
-    
+    char* complete= malloc(strlen(line)*sizeof(char));
+    strcpy(complete,line);
+
     char* command = strsep(&line, " ");
 
     char* path = malloc(strlen(command)+1+5);
@@ -103,27 +108,26 @@ int startsh(char *line)
     }
     //Si el comando ingresado es exit
     if(!strcmp(command,commands[2]) && !m){
-      return 1;
+      return 0;
     }
 
     //Si el comando ingresado es REDIR
     if(!strcmp(command,commands[3]) && !m){
-      return 0;
+      redir(line);
     }
 
     //Si el comando ingresado es BG
     if(!strcmp(command,commands[4]) && !m){
-      return 0;
+      
     }    
 
     pid=fork();
 
     if(pid==0){
-      if (!m) {
-        execl(path, command, line, NULL);
-        m=true;
-    }
-    exit(0);
+      char *execArgs[] = { command, line, NULL };
+      execvp(command, execArgs);
+      m=true;
+      exit(0);
     }
     else{     
         while ((wpid = wait(&status)) > 0);
@@ -213,6 +217,52 @@ char** trimcommands(char* cline){
     startsh(line);
     cont++;
   }
+}
+ 
+void redir(char* line){
+    char* cline = malloc((strlen(line)+1)*sizeof(char));
+    strcpy(cline, line);
+    
+    line=trimfile(line);
+
+    if(whatsfirsttwo(cline) == 1 ){
+    }
+    else{
+      char* command=strsep(&cline,"OUTPUTF");
+      char* copycommand = malloc((strlen(command)+1)*sizeof(char));
+      strcpy(copycommand, command);
+      strsep(&copycommand," ");
+      command=strsep(&command," ");
+      copycommand=strsep(&copycommand," ");
+      int fd = open(line, O_WRONLY|O_CREAT, 0666);        
+      dup2(fd, STDOUT_FILENO);
+      close(fd);
+      char *execArgs[] = { command, copycommand, NULL };
+      execvp(command,execArgs);
+      dup2(STDOUT_FILENO, fd);
+    }
+
+
+  /*
+    int fd[2];
+    pid_t childpid;
+    pipe(fd);
+    if ((childpid = fork()) == 0) {  ls es el hijo 
+        dup2(fd[1], STDOUT_FILENO);
+        close(fd[0]);
+        close(fd[1]);
+        execvp(command, execArgs);
+        execl("/bin/ls", "ls", "-l", NULL);
+        perror("Exec failed");
+    }
+    else {
+        dup2(fd[0], STDIN_FILENO);
+        close(fd[0]);
+        close(fd[1]);
+        execl("/usr/bin/sort", "sort", "-n", "--key=5", NULL);
+        perror("...");
+    }
+ */
 }
 
 /**

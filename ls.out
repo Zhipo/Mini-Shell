@@ -1,0 +1,9 @@
+total 52
+-rwxr-xr-x 1 root root  8416 may 19 23:05 exec
+-rw-r--r-- 1 root root   136 may 19 23:05 exec.c
+-rw-r--r-- 1 root root     0 may 20 11:00 ls.out
+-rwxr-xr-x 1 root root 14000 may 20 11:03 main
+-rw-r--r-- 1 root root  6086 may 20 11:03 main.c
+-rw-r--r-- 1 root root    33 may 19 22:31 Makefile
+-rw-r--r-- 1 root root    24 may 19 22:27 README.md
+-rw-r--r-- 1 root root  1016 may 20 10:14 utils.c
