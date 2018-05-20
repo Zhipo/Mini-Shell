@@ -250,12 +250,12 @@ void redir(char* line){
         char *execArgs[] = { command, args, NULL };
 
         if(input != NULL){
-          fdi = open(line, O_WRONLY|O_CREAT, 0666);        
+          fdi = open(input, O_RDONLY);        
           dup2(fdi, STDIN_FILENO);
           close(fdi);
         }
         if(output != NULL){
-          fdo = open(output, O_WRONLY|O_CREAT, 0666);        
+          fdo = open(output, O_CREAT | O_TRUNC | O_WRONLY, 0666);        
           dup2(fdo, STDOUT_FILENO);
           close(fdo);
         } 
