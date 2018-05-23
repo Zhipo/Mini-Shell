@@ -5,13 +5,14 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include "utils.c"
 
 
 int commandsinline=0;
-
+#define PARAMS 64
 /*
   Function Declarations for builtin shell commands:
  */
@@ -47,31 +48,9 @@ void cdcommand(char *args)
   }
 }
 
-/**
-   @brief Builtin command: print help.
-   @param args List of args.  Not examined.
-   @return Always returns 1, to continue executing.
- */
-void helpcommand()
-{
-  int i;
-  printf("Stephen Brennan's LSH\n");
-  printf("Type program names and arguments, and hit enter.\n");
-  printf("The following are built in:\n");
 
-  printf("Use the man command for information on other programs.\n");
-  
-}
 
-/**
-   @brief Builtin command: exit.
-   @param args List of args.  Not examined.
-   @return Always returns 0, to terminate execution.
- */
-int exitcommand()
-{
-  return 0;
-}
+
 
 /**
   @brief Launch a program and wait for it to terminate.
@@ -102,11 +81,16 @@ int startsh(char *line)
     }
     //Si el comando ingresado es help
     if(!strcmp(command,commands[1]) && !m){
-      helpcommand();
+       printf("Este lindo shell es propiedad de Omar y Valentina\n");
+  	printf("Escriba por favor el comando seguido de parametros u otros programas\n");
+  	printf("Recuerde usar caracteres como '|' '&&' o ';'\n");
+	printf("O escribir '--help' al lado del comando.\n");
+	printf("Por favor, evitar usar init 0 :c.\n");
       m=true;
     }
-    //Si el comando ingresado es exit
+    //Si el comando ingresado es QUIT
     if(!strcmp(command,commands[2]) && !m){
+	exit(status);
       return 0;
     }
 
@@ -136,10 +120,91 @@ int startsh(char *line)
   return 1;
 }
 
+/***********************************************/
+//	DE LINEA DE COMANDO A VECTOR DE COMANDOS
+int trimcommands2(char* line, char** comline) {//comline is our vector for all the arguments and commands inserted on the line
+    int cant=0;//cantidad de palabras en la linea
+    for(int i=0; i<63; i++) { //we'll admit at max 64 words between commands and arguments in one line
+        comline[i] = strsep(&line, " ");//adds the next found word to the vector
+        cant=i;
+        if(comline[i] == NULL) break;//if we reach EOF
+    }
+    return(cant);//we return yhe cuantitie
+};//after this we should check first for the simple commands,then for the | & or ; 
+//omar note: still needs to be tested
+
+
+
+/***********************************************/
+//	FUNCION PARA CORRER ENTRADA SIMPLE
+// COMANDO PARAM PARAM ... PARAM \0
+void regularcomm(char** comline){
+    
+  pid_t pid, wpid;
+  
+  bool m=false;
+  int status;
+    m=false;
+
+    char* path = malloc(strlen(comline[0])+1+5);
+    
+    strcpy(path, "/bin/");
+    strcat(path, comline[0]);
+
+    //Si el comando ingresado es cd
+    if(!strcmp(comline[0] ,commands[0]) && !m){    
+      cdcommand(comline[0]);
+      m=true;
+    }
+    //Si el comando ingresado es help
+    if(!strcmp(comline[0],commands[1]) && !m){
+       printf("Este lindo shell es propiedad de Omar y Valentina\n");
+  	printf("Escriba por favor el comando seguido de parametros u otros programas\n");
+  	printf("Recuerde usar caracteres como '|' '&&' o ';'\n");
+	printf("O escribir '--help' al lado del comando.\n");
+	printf("Por favor, evitar usar init 0 :c.\n");
+      m=true;
+    }
+    //Si el comando ingresado es QUIT
+    if(!strcmp(comline[0],commands[2]) && !m){
+	
+	exit(status);
+      //return 0;
+    }
+
+    //Si el comando ingresado es REDIR
+    if(!strcmp(comline[0],commands[3]) && !m){
+      redir(comline[0]);
+    }
+
+    //Si el comando ingresado es BG
+    if(!strcmp(comline[0],commands[4]) && !m){
+      
+    }    
+
+    pid=fork();
+
+    if(pid==0){
+  	 //   char *execArgs[] = { command, line, NULL };
+   	// char* args =((strchr(comline,' '))+1 ); 
+	//apunta al siguiente elemento tras el primer espacio de comline
+      execvp(comline[0], comline);// revisar el comline
+      m=true;
+      //exit(0);
+    }
+    else{     
+        while ((wpid = wait(&status)) > 0);
+    }
+//return 1;
+}
+
+
+
+
+
+/***********************************************/
+//	LEER LA LINEA INGRESADA
 #define LSH_RL_BUFSIZE 1024
-/**
-   @return The line readed.
- */
 char *readlinesh(void)
 {
   int bufsize = LSH_RL_BUFSIZE;
@@ -177,6 +242,8 @@ char *readlinesh(void)
     }
   }
 }
+
+
 
 #define ROWS 100
 char** trimcommands(char* cline){
@@ -266,25 +333,104 @@ void redir(char* line){
           while ((wpid = wait(&status)) > 0);
       }    
 }
+/***********************************************/
+//		FUNCION PARA CORRER PIPES
+int pipes(char ** comline, char ** comline2){
+	int fd[2];
+	pipe(fd);
+	int i;
+	pid_t pid = fork();
+	//Error case
+	if(pid == -1){
+	    printf("Fork error");
+	    return 1;
+	}
+	//Hijo
+	//Correr segundo comando
+	if(pid == 0){
+	close(fd[1]);
+	dup2(fd[0],0);
+	execvp(comline2[0],comline2);
+	return 0;
+	}
+	//padre
+	//El padre se encargara de correr el primer comando
+	else{
+	close(fd[0]);
+	dup2(fd[1],1);
+	execvp(comline[0],comline);
+	return 0;
+	}	
+	
+}
+
+
+
 
 /**
    @return status code
  */
+//1267507
 int main(int argc, char **argv)
 {
   // Se realiza un ciclo infinito mientras status determine que el usuario no desea salir .
-  char *line;
-  int status;
+  char * comline [64];//arreglo de 64 espacion para comandos
+  char * comaux1 [64] = {0};//arreglos auxiliares para pipes
+  char * comaux2 [64] = {0};
+  char *line;//linea que se inserta
+  int status,cant=0, aux=0,aux2=0;//cant: cantidad de comandos insertada
   char** commands;
+  bool pipe = false, amper=false, dot=false;
 
   do {
     commandsinline=0;
     printf("> ");
     line = readlinesh();
-    trimcommands(line);
+    //trimcommands(line);
+    cant=trimcommands2(line, comline);
+printf("%d",cant); 
+	/*// BLOQUE DE PRUEBA DE ENTRADA DE LINEA Y TRIM2 CORRECTO
+	for(int i=0; i<63; i++) { 
+        printf("%s",comline[i]);
+  	if(comline[i] == NULL) break;
+	}*/
+    //regularcomm(comline);
+    for (int i =0; i <cant; i++) { //    
+        if (strcmp(comline[i], "|") == 0) {    
+            aux = i;
+	    pipe=true;      
+         //  printf("pipe found\n");
+           break;
+        }               
+    }
 
+    if(pipe==true){//HERE
+	//printf("entre a pipe true\n");
+	for (int i=0; i<aux; i++) {
+	comaux1[i]=comline[i];
+	//printf("%s",comaux1[i]);
+	//printf("\n");
+	}
+        aux2=0;
+	for (int i=aux+1; i< cant; i++) {  //empieza en la posicion despues del pipe y sigue hasta que se acaba   
+
+	//printf("Here2: \n");        
+	comaux2[aux2]=comline[i];
+	//printf("%s",comaux2[aux2]);
+	//printf("\n");
+                aux2++;
+        }     
+	if(pipes(comaux1,comaux2)==0) {
+	//printf("ejecuto\n");	
+	break;
+	}
+    }
+    else if(pipe==false){
+    //printf("entre a pipe false\n");
+    regularcomm(comline);
+    }
+  
   } while (status);
 
   return 1;
 }
-
